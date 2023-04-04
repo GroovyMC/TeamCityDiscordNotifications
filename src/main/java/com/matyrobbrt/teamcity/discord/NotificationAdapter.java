@@ -17,7 +17,6 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SRunningBuild;
-import jetbrains.buildServer.serverSide.statistics.build.BuildFinishAware;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -31,13 +30,16 @@ import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class NotificationAdapter extends BuildServerAdapter implements BuildFinishAware {
+public class NotificationAdapter extends BuildServerAdapter {
     public static final Logger LOG = Loggers.SERVER;
 
     private final @NotNull HTTPRequestBuilder.RequestHandler requestHandler;
     private final SBuildServer server;
     private volatile URI rootUrl;
+    private final Map<Long, String> webhookUrls = new ConcurrentHashMap<>();
     public NotificationAdapter(@NotNull SBuildServer server, @NotNull EventDispatcher<BuildServerListener> events,
 //                                         @NotNull BuildHistory buildHistory,
 //                                         @NotNull BuildsManager buildsManager,
@@ -66,7 +68,7 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
 
                 build.getChanges(SelectPrevBuildPolicy.SINCE_LAST_BUILD, true).forEach(change -> message.append(String.format("\n  - %s", change.getDescription())));
 
-                sendWebhook(feature, message.build());
+                sendWebhook(build, feature, message.build());
             } catch (Exception e) {
                 LOG.error("[DiscordNotifier] Encountered exception sending Discord webhook: ", e);
                 System.out.println("Whoops... " + e);
@@ -75,7 +77,7 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
     }
 
     @Override
-    public void buildFinished(@NotNull SBuild build) {
+    public void buildFinished(@NotNull SRunningBuild build) {
         if (build.getBuildType() == null) return;
         final Collection<SBuildFeatureDescriptor> features = build.getBuildFeaturesOfType(DiscordNotificationBuildFeature.ID);
         if (features.isEmpty()) return;
@@ -99,7 +101,7 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
                     embed.addField(new WebhookEmbed.EmbedField(true, "Build branch", build.getBranch().getDisplayName()));
                 }
 
-                sendWebhook(feature, message.addEmbeds(embed.build()).build());
+                sendWebhook(build, feature, message.addEmbeds(embed.build()).build());
             } catch (Exception e) {
                 LOG.error("[DiscordNotifier] Encountered exception sending Discord webhook: ", e);
                 System.out.println("Whoops... " + e);
@@ -107,8 +109,15 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
         }
     }
 
-    protected void sendWebhook(SBuildFeatureDescriptor feature, WebhookMessage message) throws URISyntaxException {
-        final String url = feature.getParameters().get("discordNotifier.url");
+    protected void sendWebhook(SBuild build, SBuildFeatureDescriptor feature, WebhookMessage message) throws URISyntaxException {
+        final String url;
+        if (webhookUrls.containsKey(build.getBuildId())) {
+            url = webhookUrls.get(build.getBuildId());
+            webhookUrls.remove(build.getBuildId());
+        } else {
+            url = feature.getParameters().get("discordNotifier.url");
+            webhookUrls.put(build.getBuildId(), url);
+        }
         requestHandler.doRequest(new HTTPRequestBuilder(url)
                 .withData(buildWebhookMessage(message).getBytes(StandardCharsets.UTF_8))
                 .withMethod(HttpMethod.POST)
