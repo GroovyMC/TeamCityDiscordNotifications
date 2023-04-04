@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<dsl-extension kind="buildFeature" type="discordNotification" generateDslJar="true">
+    <class name="DiscordNotification">
+        <description>
+            A build feature which sends build notifications to Discord.
+        </description>
+    </class>
+    <function name="discordNotification">
+        <description>
+            Adds a build feature which sends build notifications to Discord.
+            @see DiscordNotification
+        </description>
+    </function>
+    <params>
+        <param name="discordNotifier.url" dslName="webhookUrl">
+            <description>
+                The URL of the Discord webhook to send notifications to.
+            </description>
+        </param>
+    </params>
+    <examples>
+        <example>
+            <description>
+                Sends notifications to the webhook set as a parameter with the name discord_webhook.
+            </description>
+            <code>
+                discordNotification {
+                    webhookUrl = "%discord_webhook%"
+                }
+            </code>
+        </example>
+    </examples>
+</dsl-extension>

@@ -1,0 +1,7 @@
+.gradle
+build
+teamcity-plugin.dist.xml
+downloads
+./teamcity
+data
+.idea/

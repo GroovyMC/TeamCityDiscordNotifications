@@ -1,0 +1,10 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven {
+            name 'Modding Inquisition Releases'
+            url 'https://maven.moddinginquisition.org/releases'
+        }
+    }
+}
+rootProject.name = 'teamcity-discord-notifier'

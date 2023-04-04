@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+    id 'org.cadixdev.licenser' version '0.6.1'
+    id 'io.github.groovymc.simpleci' version '0.1.+'
+    id 'io.github.rodm.teamcity-server' version '1.5'
+    id 'io.github.rodm.teamcity-environments' version '1.5'
+}
+
+archivesBaseName = 'discord'
+group = 'com.matyrobbrt.teamcity'
+
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(11))
+
+versioning {
+    fromTag = ''
+}
+
+println("Version: ${project.version = versioning.calculatedVersion}")
+
+license {
+    header = file('LICENSE-header.txt')
+}
+
+repositories {
+    maven {
+        name = 'JetBrains maven central mirror'
+        url = 'https://cache-redirector.jetbrains.com/maven-central'
+    }
+}
+
+dependencies {
+    implementation('club.minnced:discord-webhooks:0.8.2')
+
+    provided("org.jetbrains.teamcity:server-api:${project.teamcity_version}")
+    provided("org.jetbrains.teamcity:oauth:${project.teamcity_version}")
+    provided("org.jetbrains.teamcity:server-web-api:${project.teamcity_version}")
+    provided("org.jetbrains.teamcity.internal:server:${project.teamcity_version}")
+    provided("org.jetbrains.teamcity.internal:web:${project.teamcity_version}")
+}
+
+teamcity {
+    version = project.teamcity_version
+
+    server {
+        archiveName = 'discord.zip'
+        descriptor = file('teamcity-plugin.xml')
+        tokens = ['Version': project.version]
+
+        files {
+            into('kotlin-dsl') {
+                from('src/kotlin-dsl')
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = 'ModdingInquisitionMavenRepo'
+            url = 'https://maven.moddinginquisition.org/releases'
+            credentials {
+                username = (System.getenv('MAVEN_USER') ?: findProperty('inquisitionMavenUser')) ?: ''
+                password = (System.getenv('MAVEN_PASSWORD') ?: findProperty('inquisitionMavenPassword')) ?: ''
+            }
+        }
+    }
+    publications {
+        register('mavenJava', MavenPublication) {
+            it.artifactId = 'discord'
+            it.groupId = 'com.matyrobbrt.teamcity'
+            it.artifacts = [tasks.serverPlugin]
+            changelog.addArtifact(it)
+        }
+    }
+}
