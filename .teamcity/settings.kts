@@ -44,6 +44,10 @@ object Matyrobbrt_TeamCityDiscordNotifications_Build : BuildType({
         }
     }
 
+    params {
+        password("discord_webhook", "credentialsJSON:e9fc5bbe-4d40-4e50-b448-4d481bfbd49e")
+    }
+
     features {
         swabra {
             filesCleanup = Swabra.FilesCleanup.BEFORE_BUILD
@@ -58,7 +62,7 @@ object Matyrobbrt_TeamCityDiscordNotifications_Build : BuildType({
             }
         }
         discordNotification {
-            webhookUrl = "credentialsJSON:e9fc5bbe-4d40-4e50-b448-4d481bfbd49e"
+            webhookUrl = "%discord_webhook%"
         }
     }
 
