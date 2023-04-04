@@ -83,7 +83,6 @@ public class NotificationAdapter extends BuildServerAdapter {
                         .setUsername("TeamCity");
 
                 final boolean failed = build.getBuildStatus().isFailed();
-                if (!failed && !build.getBuildStatus().isSuccessful()) return;
 
                 final WebhookEmbedBuilder embed = new WebhookEmbedBuilder()
                         .setAuthor(new WebhookEmbed.EmbedAuthor(build.getBuildType().getProject().getName(), null, rootUrl.resolve("/project/" + build.getBuildType().getProject().getExternalId()).toString()))
