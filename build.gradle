@@ -13,7 +13,7 @@ group = 'com.matyrobbrt.teamcity'
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(11))
 
 versioning {
-    fromTag = ''
+    fromTag = '0.1'
 }
 
 println("Version: ${project.version = versioning.calculatedVersion}")
@@ -61,8 +61,8 @@ publishing {
             name = 'ModdingInquisitionMavenRepo'
             url = 'https://maven.moddinginquisition.org/releases'
             credentials {
-                username = (System.getenv('MAVEN_USER') ?: findProperty('inquisitionMavenUser')) ?: ''
-                password = (System.getenv('MAVEN_PASSWORD') ?: findProperty('inquisitionMavenPassword')) ?: ''
+                username = (System.getenv('INQUISITION_MAVEN_USER') ?: findProperty('inquisitionMavenUser')) ?: ''
+                password = (System.getenv('INQUISITION_MAVEN_PASSWORD') ?: findProperty('inquisitionMavenPassword')) ?: ''
             }
         }
     }
