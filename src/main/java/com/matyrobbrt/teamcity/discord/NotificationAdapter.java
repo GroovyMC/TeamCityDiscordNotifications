@@ -10,6 +10,7 @@ import club.minnced.discord.webhook.send.WebhookEmbedBuilder;
 import club.minnced.discord.webhook.send.WebhookMessage;
 import club.minnced.discord.webhook.send.WebhookMessageBuilder;
 import com.intellij.openapi.diagnostic.Logger;
+import jetbrains.buildServer.log.Loggers;
 import jetbrains.buildServer.serverSide.BuildServerAdapter;
 import jetbrains.buildServer.serverSide.BuildServerListener;
 import jetbrains.buildServer.serverSide.SBuild;
@@ -32,7 +33,7 @@ import java.time.Instant;
 import java.util.Collection;
 
 public class NotificationAdapter extends BuildServerAdapter implements BuildFinishAware {
-    public static final Logger LOG = Logger.getInstance("DiscordNotifications");
+    public static final Logger LOG = Loggers.SERVER;
 
     private final @NotNull HTTPRequestBuilder.RequestHandler requestHandler;
     private final SBuildServer server;
@@ -67,7 +68,7 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
 
                 sendWebhook(feature, message.build());
             } catch (Exception e) {
-                LOG.error("Encountered exception sending Discord webhook: ", e);
+                LOG.error("[DiscordNotifier] Encountered exception sending Discord webhook: ", e);
                 System.out.println("Whoops... " + e);
             }
         }
@@ -100,7 +101,7 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
 
                 sendWebhook(feature, message.addEmbeds(embed.build()).build());
             } catch (Exception e) {
-                LOG.error("Encountered exception sending Discord webhook: ", e);
+                LOG.error("[DiscordNotifier] Encountered exception sending Discord webhook: ", e);
                 System.out.println("Whoops... " + e);
             }
         }
@@ -111,6 +112,8 @@ public class NotificationAdapter extends BuildServerAdapter implements BuildFini
         requestHandler.doRequest(new HTTPRequestBuilder(url)
                 .withData(buildWebhookMessage(message).getBytes(StandardCharsets.UTF_8))
                 .withMethod(HttpMethod.POST)
+                .onErrorResponse((code, msg) -> LOG.warn("[DiscordNotifier] Server responded with code " + code + ": " + msg))
+                .onException(exception -> LOG.error("[DiscordNotifier] Encountered exception sending request: ", exception))
                 .withHeader("Content-Type", "application/json").build());
     }
 
