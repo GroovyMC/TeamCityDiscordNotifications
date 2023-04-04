@@ -16,6 +16,7 @@ import jetbrains.buildServer.serverSide.SBuild;
 import jetbrains.buildServer.serverSide.SBuildFeatureDescriptor;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.SRunningBuild;
+import jetbrains.buildServer.serverSide.statistics.build.BuildFinishAware;
 import jetbrains.buildServer.util.EventDispatcher;
 import jetbrains.buildServer.util.HTTPRequestBuilder;
 import jetbrains.buildServer.util.http.HttpMethod;
@@ -30,11 +31,12 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Collection;
 
-public class NotificationAdapter extends BuildServerAdapter {
+public class NotificationAdapter extends BuildServerAdapter implements BuildFinishAware {
     public static final Logger LOG = Logger.getInstance("DiscordNotifications");
 
     private final @NotNull HTTPRequestBuilder.RequestHandler requestHandler;
-    private final URI rootUrl;
+    private final SBuildServer server;
+    private volatile URI rootUrl;
     public NotificationAdapter(@NotNull SBuildServer server, @NotNull EventDispatcher<BuildServerListener> events,
 //                                         @NotNull BuildHistory buildHistory,
 //                                         @NotNull BuildsManager buildsManager,
@@ -42,6 +44,7 @@ public class NotificationAdapter extends BuildServerAdapter {
 //                                         @NotNull ServerResponsibility serverResponsibility,
 //                     MultiNodeTasks multiNodeTasks,
                                @NotNull HTTPRequestBuilder.RequestHandler requestHandler) {
+        this.server = server;
         this.requestHandler = requestHandler;
         events.addListener(this);
         this.rootUrl = URI.create(server.getRootUrl());
@@ -71,7 +74,7 @@ public class NotificationAdapter extends BuildServerAdapter {
     }
 
     @Override
-    public void buildFinished(@NotNull SRunningBuild build) {
+    public void buildFinished(@NotNull SBuild build) {
         if (build.getBuildType() == null) return;
         final Collection<SBuildFeatureDescriptor> features = build.getBuildFeaturesOfType(DiscordNotificationBuildFeature.ID);
         if (features.isEmpty()) return;
@@ -103,7 +106,7 @@ public class NotificationAdapter extends BuildServerAdapter {
         }
     }
 
-    private void sendWebhook(SBuildFeatureDescriptor feature, WebhookMessage message) throws URISyntaxException {
+    protected void sendWebhook(SBuildFeatureDescriptor feature, WebhookMessage message) throws URISyntaxException {
         final String url = feature.getParameters().get("discordNotifier.url");
         requestHandler.doRequest(new HTTPRequestBuilder(url)
                 .withData(buildWebhookMessage(message).getBytes(StandardCharsets.UTF_8))
@@ -111,7 +114,12 @@ public class NotificationAdapter extends BuildServerAdapter {
                 .withHeader("Content-Type", "application/json").build());
     }
 
-    private String computeBuildLink(SBuild build) {
+    @Override
+    public void serverStartup() {
+        this.rootUrl = URI.create(server.getRootUrl());
+    }
+
+    protected String computeBuildLink(SBuild build) {
         return rootUrl.resolve("/buildConfiguration/" + build.getBuildType().getExternalId() + "/" + build.getBuildId()).toString();
     }
 
