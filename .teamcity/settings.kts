@@ -58,7 +58,7 @@ object Matyrobbrt_TeamCityDiscordNotifications_Build : BuildType({
             }
         }
         discordNotification {
-            webhookUrl = "credentialsJSON:94a45094-074a-4f2a-9312-c45b4dc76194"
+            webhookUrl = "credentialsJSON:e9fc5bbe-4d40-4e50-b448-4d481bfbd49e"
         }
     }
 
